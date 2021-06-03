@@ -84,7 +84,6 @@ namespace E_Pharmacy.Controllers
         {
             /*_context.Customer.Add(customer);
             await _context.SaveChangesAsync();
-
             return CreatedAtAction("GetCustomer", new { id = customer.CustId }, customer);*/
 
             var customerWithSameEmail = _context.Customer.FirstOrDefault(m => m.Email.ToLower() == customer.Email.ToLower()); //check email already exit or not
