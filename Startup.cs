@@ -1,3 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.Options;
+using Microsoft.Extensions.FileProviders;
 using E_Pharmacy.Data;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -7,10 +15,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging; //new
+using Microsoft.AspNetCore.Authentication.JwtBearer; //
+using Microsoft.IdentityModel.Tokens; //
+using System.Text; //
 using E_Pharmacy.Models;
 using E_Pharmacy.Service;
-using Microsoft.Extensions.FileProviders;
-using System.IO;
+using E_Pharmacy.Services;
 
 namespace E_Pharmacy
 {
@@ -29,6 +40,28 @@ namespace E_Pharmacy
 
             services.AddControllersWithViews();
             //services.AddControllers().AddNewtonsoftJson();
+
+            services.AddScoped<IJWTService, JWTService>();
+
+
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.RequireHttpsMetadata = false;
+                options.SaveToken = true;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = Configuration["Jwt:Issuer"],
+                    ValidAudience = Configuration["Jwt:Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Jwt:SecretKey"])),
+                    ClockSkew = TimeSpan.Zero
+                };
+            });
+
             services.AddDbContext<PharmacyDataContext>(options =>
             options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
@@ -79,6 +112,9 @@ namespace E_Pharmacy
 
 
             app.UseRouting();
+            app.UseAuthentication(); //new
+            app.UseAuthorization();  //new
+
 
             app.UseEndpoints(endpoints =>
             {
