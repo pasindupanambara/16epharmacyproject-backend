@@ -60,6 +60,8 @@ namespace E_Pharmacy.Controllers
         }
 
 
+
+
         // GET: api/Pharmacies/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Pharmacy>> GetPharmacy(int id)

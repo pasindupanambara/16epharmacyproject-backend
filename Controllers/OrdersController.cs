@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using E_Pharmacy.Data;
 using E_Pharmacy.Models;
 using E_Pharmacy.Service;
+using Microsoft.AspNetCore.Hosting;
+using System.IO;
 
 namespace E_Pharmacy.Controllers
 {
@@ -16,12 +18,12 @@ namespace E_Pharmacy.Controllers
     public class OrdersController : ControllerBase
     {
         private readonly PharmacyDataContext _context;
-        private IOrderService _iorderService;
+        private readonly IWebHostEnvironment _hostEnvironment;
 
-        public OrdersController(PharmacyDataContext context,   IOrderService imageService)
+        public OrdersController(PharmacyDataContext context, IWebHostEnvironment hostEnvironment)
         {
             _context = context;
-            _iorderService = imageService;
+            this._hostEnvironment = hostEnvironment;
 
         }
 
@@ -37,7 +39,7 @@ namespace E_Pharmacy.Controllers
         //GET: api/Orders
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Order>>> GetOrder(string field, int value1, string value2, DateTime date)
-        {
+        {/*
             if (field == "pharmacy" & value2 == "date")
             {
                 return await _context.Order.Where(ord => ord.Pharmacy_id == value1 && ord.Date_time.Date == date).ToListAsync();
@@ -73,19 +75,43 @@ namespace E_Pharmacy.Controllers
                 return await _context.Order.Where(ord => ord.Pharmacy_id == value1 && ord.Status2 == "unseen").ToListAsync();
             }
 
-            else if (field == "all")
-            {
+            else if (field == "all")*/            
                 return await _context.Order.ToListAsync();
             }
 
 
-
+            /*
 
             return NotFound();
-        }
+        }*/
 
-        // GET: api/Orders/5
-        [HttpGet("{id}")]
+            // GET: api/Orders
+            [HttpGet("{field}/{value}")]
+            public async Task<ActionResult<IEnumerable<Order>>> GetOrder(string field, int value)
+            {
+                if (field == "PharmacyId")
+                {
+                    return await _context.Order.Where(p => p.PharmacyId == value).ToListAsync();
+                }
+
+                if (field == "CustomerId")
+                {
+                    return await _context.Order.Where(p => p.CustomerId == value).ToListAsync();
+                }
+
+
+
+
+                else if (field == "all")
+                {
+                    return await _context.Order.ToListAsync();
+                }
+
+                return NotFound();
+            }
+
+            // GET: api/Orders/5
+            [HttpGet("{id}")]
         public async Task<ActionResult<Order>> GetOrder(int id)
         {
             var order = await _context.Order.FindAsync(id);
@@ -137,7 +163,7 @@ namespace E_Pharmacy.Controllers
 
         public async Task<ActionResult<Order>> PostOrder([FromForm] Order order)
         {
-            order.Image = await _iorderService.SaveImage(order.ImageData); //save image
+            order.ImageName = await SaveImage(order.ImageFile); //save image
 
             _context.Order.Add(order);
             await _context.SaveChangesAsync();
@@ -165,5 +191,21 @@ namespace E_Pharmacy.Controllers
         {
             return _context.Order.Any(e => e.OrderID == id);
         }
-    }
+
+
+            [NonAction]
+
+            public async Task<string> SaveImage(IFormFile imageFile)
+            {
+                string imageName = new string(Path.GetFileNameWithoutExtension(imageFile.FileName).Take(10).ToArray()).Replace(' ', '-');
+                imageName = imageName + DateTime.Now.ToString("yymmssfff") + Path.GetExtension(imageFile.FileName);
+                var imagePath = Path.Combine(_hostEnvironment.ContentRootPath, "Images", imageName);
+                using (var fileStream = new FileStream(imagePath, FileMode.Create))
+                {
+                    await imageFile.CopyToAsync(fileStream);
+                }
+                return imageName;
+            }
+
+        }
 }

@@ -4,14 +4,16 @@ using E_Pharmacy.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace E_Pharmacy.Migrations
 {
     [DbContext(typeof(PharmacyDataContext))]
-    partial class PharmacyDataContextModelSnapshot : ModelSnapshot
+    [Migration("20210605031801_complete")]
+    partial class complete
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -98,19 +100,19 @@ namespace E_Pharmacy.Migrations
                     b.Property<string>("Address")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("int");
-
                     b.Property<string>("CustomerName")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("DateTime")
+                    b.Property<int>("Customer_id")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Date_time")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ImageName")
+                    b.Property<string>("Image")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("PatientAge")
@@ -119,11 +121,11 @@ namespace E_Pharmacy.Migrations
                     b.Property<string>("PatientName")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("PharmacyId")
-                        .HasColumnType("int");
-
                     b.Property<string>("PharmacyName")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Pharmacy_id")
+                        .HasColumnType("int");
 
                     b.Property<string>("Status")
                         .HasColumnType("nvarchar(max)");
