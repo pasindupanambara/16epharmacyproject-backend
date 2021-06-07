@@ -27,6 +27,28 @@ namespace E_Pharmacy.Controllers
         {
             return await _context.Customer.ToListAsync();
         }
+        /*
+        [HttpGet("{field}/{value}")]
+        public async Task<ActionResult<IEnumerable<Customer>>> GetCustomer(string field, int value)
+        {
+            if (field == "CustId")
+            {
+                return await _context.Customer.Where(p => p.CustId == value).ToListAsync();
+            }
+
+            
+
+
+
+
+            else if (field == "all")
+            {
+                return await _context.Customer.ToListAsync();
+            }
+
+            return NotFound();
+        }*/
+
 
         // GET: api/Customers/5
         [HttpGet("{id}")]

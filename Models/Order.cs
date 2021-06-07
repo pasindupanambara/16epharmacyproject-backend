@@ -12,9 +12,11 @@ namespace E_Pharmacy.Models
     {
         [Key]
         public int OrderID { get; set; }
-        public DateTime Date_time { get; set; }
+        public DateTime DateTime { get; set; }
         public string Status { get; set; }
         public string Status2 { get; set; }
+
+
         public string PharmacyName { get; set; }
         public string CustomerName { get; set; }
         public string PatientName { get; set; }
@@ -22,17 +24,20 @@ namespace E_Pharmacy.Models
         public string Address { get; set; }
         public string Email { get; set; }
         public int TeleNo { get; set; }
-        public int Customer_id { get; set; }
+        public int CustomerId { get; set; }
 
-        
-        public string Image { get; set;}
+        public string Total { get; set; }
+
+        public string ImageName { get; set;}
 
         [NotMapped]
-        public IFormFile ImageData { get; set; }
+        public IFormFile ImageFile { get; set; }
         [NotMapped]
-        public String ImageSource { get; set; }
+        public String ImageSrc { get; set; }
         //[ForeignKey("Pharmacy")]
-        public int Pharmacy_id { get; set; }
+        public int PharmacyId { get; set; }
         //public Pharmacy Pharmacy { get; set; }
+
+        public bool Complete { get { return !String.IsNullOrWhiteSpace(this.Total); } }
     }
 }
