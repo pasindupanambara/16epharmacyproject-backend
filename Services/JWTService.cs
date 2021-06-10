@@ -9,8 +9,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using E_Pharmacy.Data;
-
-
 namespace E_Pharmacy.Services
 {
     public class JWTService : IJWTService
@@ -22,21 +20,21 @@ namespace E_Pharmacy.Services
             _config = config;
             _context = context;
         }
-
         public string GenerateJWTtoken(Login user)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:SecretKey"]));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
             // Find User role
-
             var isCustomer = _context.Customer.FirstOrDefault(m => m.Email.ToLower() == user.Email.ToLower());
             var isPharmacy = _context.Pharmacy.FirstOrDefault(m => m.Email.ToLower() == user.Email.ToLower());
-
-
             var currentUserRole = new object();
             var currentUserId = new object();
             var currentUserName = new object();
+            var currentUserMail = new object();
+            var currentUserTele = new object();
+
+
+
 
 
             if (isCustomer != null)
@@ -44,6 +42,9 @@ namespace E_Pharmacy.Services
                 currentUserRole = isCustomer.UserRole;
                 currentUserId = isCustomer.CustId;
                 currentUserName = isCustomer.Customername;
+                currentUserMail = isCustomer.Email;
+                currentUserTele = isCustomer.TeleNo;
+
             }
 
 
@@ -52,6 +53,8 @@ namespace E_Pharmacy.Services
                 currentUserRole = isPharmacy.UserRole;
                 currentUserId = isPharmacy.Id;
                 currentUserName = isPharmacy.Pharmacyname;
+                currentUserMail = isPharmacy.Email;
+                currentUserTele = isPharmacy.TeleNo;
             }
 
             var claims = new[]
@@ -60,6 +63,8 @@ namespace E_Pharmacy.Services
                 new Claim("id", currentUserId.ToString()),
                 new Claim("role", currentUserRole.ToString()),
                 new Claim("name", currentUserName.ToString()),
+                new Claim("mail", currentUserMail.ToString()),
+                new Claim("tele", currentUserTele.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             };
 
@@ -70,9 +75,7 @@ namespace E_Pharmacy.Services
             expires: DateTime.Now.AddMinutes(30),
             signingCredentials: credentials
             );
-
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
-
 }

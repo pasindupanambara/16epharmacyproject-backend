@@ -10,6 +10,8 @@ using E_Pharmacy.Models;
 using E_Pharmacy.Service;
 using Microsoft.AspNetCore.Hosting;
 using System.IO;
+using Microsoft.Azure.Storage;
+using Microsoft.Azure.Storage.Blob;
 
 namespace E_Pharmacy.Controllers
 {
@@ -17,6 +19,9 @@ namespace E_Pharmacy.Controllers
     [ApiController]
     public class OrdersController : ControllerBase
     {
+        CloudStorageAccount cloudStorageAccount = CloudStorageAccount.Parse("DefaultEndpointsProtocol=https;AccountName=epharmacyservice;AccountKey=xq6HmKUkF4TaOjyg1y+2X9dxLUxBMdcBof/n7a+T8BkJv9zFAhw/V8OmvJGbY5VtF2RojAgOdQqo58Z2mg5TfA==;EndpointSuffix=core.windows.net");
+
+
         private readonly PharmacyDataContext _context;
         private readonly IWebHostEnvironment _hostEnvironment;
 
@@ -197,15 +202,31 @@ namespace E_Pharmacy.Controllers
 
             public async Task<string> SaveImage(IFormFile imageFile)
             {
-                string imageName = new string(Path.GetFileNameWithoutExtension(imageFile.FileName).Take(10).ToArray()).Replace(' ', '-');
-                imageName = imageName + DateTime.Now.ToString("yymmssfff") + Path.GetExtension(imageFile.FileName);
+                string imageName = new string(Path.GetFileNameWithoutExtension(imageFile.FileName).ToArray());
+                imageName = imageName  + Path.GetExtension(imageFile.FileName);
                 var imagePath = Path.Combine(_hostEnvironment.ContentRootPath, "Images", imageName);
-                using (var fileStream = new FileStream(imagePath, FileMode.Create))
+               // using (var fileStream = new FileStream(imagePath, FileMode.Create))
                 {
-                    await imageFile.CopyToAsync(fileStream);
-                }
+                //await imageFile.CopyToAsync(fileStream);
+                await UploadToAzureAsync(imageFile);
+            }
                 return imageName;
             }
+        private async Task UploadToAzureAsync(IFormFile imageFile)
+        {
+            var cloudBlobClient = cloudStorageAccount.CreateCloudBlobClient();
 
+            var cloudBlobContainer = cloudBlobClient.GetContainerReference("epharmacyimages");
+
+            if (await cloudBlobContainer.CreateIfNotExistsAsync())
+            {
+                await cloudBlobContainer.SetPermissionsAsync(new BlobContainerPermissions { PublicAccess = BlobContainerPublicAccessType.Container });
+            }
+
+            var cloudBlockBlob = cloudBlobContainer.GetBlockBlobReference(imageFile.FileName);
+            cloudBlockBlob.Properties.ContentType = imageFile.ContentType;
+
+            await cloudBlockBlob.UploadFromStreamAsync(imageFile.OpenReadStream());
         }
+    }
 }

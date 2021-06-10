@@ -9,6 +9,8 @@ using E_Pharmacy.Data;
 using E_Pharmacy.Models;
 using Microsoft.AspNetCore.Hosting;
 using System.IO;
+using Microsoft.Azure.Storage;
+using Microsoft.Azure.Storage.Blob;
 
 namespace E_Pharmacy.Controllers
 {
@@ -16,6 +18,9 @@ namespace E_Pharmacy.Controllers
     [ApiController]
     public class PharmaciesController : ControllerBase
     {
+        CloudStorageAccount cloudStorageAccount = CloudStorageAccount.Parse("DefaultEndpointsProtocol=https;AccountName=epharmacyservice;AccountKey=xq6HmKUkF4TaOjyg1y+2X9dxLUxBMdcBof/n7a+T8BkJv9zFAhw/V8OmvJGbY5VtF2RojAgOdQqo58Z2mg5TfA==;EndpointSuffix=core.windows.net");
+
+
         private readonly PharmacyDataContext _context;
         private readonly IWebHostEnvironment _hostEnvironment;
 
@@ -46,9 +51,31 @@ namespace E_Pharmacy.Controllers
                          TeleNo = x.TeleNo,
                          Email = x.Email,
                          RegNo = x.RegNo,
-                         ImageSrc = String.Format("{0}://{1}{2}/Images/{3}", Request.Scheme, Request.Host, Request.PathBase, x.Pharmacyimagename)
+                         ImageSrc = String.Format("https://epharmacyservice.blob.core.windows.net/epharmacyimages/{0}",  x.Pharmacyimagename)
                      })
                      .ToListAsync();
+            }
+
+            else if (field == "Byid")
+            {
+                var intid = Convert.ToInt32(value);
+                return await _context.Pharmacy.Where(p => p.Id == intid)
+                     .Select(x => new Pharmacy()
+                     {
+                         Id = x.Id,
+                         RegNo = x.RegNo,
+                         Pharmacyname = x.Pharmacyname,
+                         Address = x.Address,
+                         District = x.District,
+                         Email = x.Email,
+                         TeleNo = x.TeleNo,
+                         Password = x.Password,
+                         Pharmacyimagename = x.Pharmacyimagename,
+                         ImageSrc = String.Format("https://epharmacyservice.blob.core.windows.net/epharmacyimages/{0}", x.Pharmacyimagename)
+                     })
+                     .ToListAsync();
+
+
             }
 
             else if (field == "all")
@@ -80,11 +107,17 @@ namespace E_Pharmacy.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutPharmacy(int id, Pharmacy pharmacy)
+        public async Task<IActionResult> PutPharmacy(int id, [FromForm] Pharmacy pharmacy)
         {
             if (id != pharmacy.Id)
             {
                 return BadRequest();
+            }
+
+            if (pharmacy.Pharmacyimagefile != null)
+            {
+                DeleteImage(pharmacy.Pharmacyimagename);
+                pharmacy.Pharmacyimagename = await SaveImage(pharmacy.Pharmacyimagefile);
             }
 
             _context.Entry(pharmacy).State = EntityState.Modified;
@@ -144,7 +177,7 @@ namespace E_Pharmacy.Controllers
             {
                 return NotFound();
             }
-
+            DeleteImage(pharmacy.Pharmacyimagename);
             _context.Pharmacy.Remove(pharmacy);
             await _context.SaveChangesAsync();
 
@@ -172,14 +205,41 @@ namespace E_Pharmacy.Controllers
         [NonAction]
         public async Task<string> SaveImage(IFormFile Pharmacyimagefile)
         {
-            string Pharmacyimagename = new String(Path.GetFileNameWithoutExtension(Pharmacyimagefile.FileName).Take(10).ToArray()).Replace(' ', '-');
-            Pharmacyimagename = Pharmacyimagename + DateTime.Now.ToString("yymmssfff") + Path.GetExtension(Pharmacyimagefile.FileName);
+            string Pharmacyimagename = new String(Path.GetFileNameWithoutExtension(Pharmacyimagefile.FileName).ToArray());
+            Pharmacyimagename = Pharmacyimagename +  Path.GetExtension(Pharmacyimagefile.FileName);
             var imagePath = Path.Combine(_hostEnvironment.ContentRootPath, "Images", Pharmacyimagename);
-            using (var fileStream = new FileStream(imagePath, FileMode.Create))
+           // using (var fileStream = new FileStream(imagePath, FileMode.Create))
             {
-                await Pharmacyimagefile.CopyToAsync(fileStream);
+                // await Pharmacyimagefile.CopyToAsync(fileStream);
+                await UploadToAzureAsync(Pharmacyimagefile);
             }
             return Pharmacyimagename;
+        }
+
+        [NonAction]
+        public void DeleteImage(string Pharmacyimagename)
+        {
+            var imagePath = Path.Combine(_hostEnvironment.ContentRootPath, "Images", Pharmacyimagename);
+            if (System.IO.File.Exists(imagePath))
+                System.IO.File.Delete(imagePath);
+        }
+
+            private async Task UploadToAzureAsync(IFormFile Pharmacyimagefile)
+        {
+            var cloudBlobClient = cloudStorageAccount.CreateCloudBlobClient();
+
+        var cloudBlobContainer = cloudBlobClient.GetContainerReference("epharmacyimages");
+
+            if (await cloudBlobContainer.CreateIfNotExistsAsync())
+            {
+                await cloudBlobContainer.SetPermissionsAsync(new BlobContainerPermissions { PublicAccess = BlobContainerPublicAccessType.Container
+    });
+            }
+
+var cloudBlockBlob = cloudBlobContainer.GetBlockBlobReference(Pharmacyimagefile.FileName);
+cloudBlockBlob.Properties.ContentType = Pharmacyimagefile.ContentType;
+
+await cloudBlockBlob.UploadFromStreamAsync(Pharmacyimagefile.OpenReadStream());
         }
 
     }
